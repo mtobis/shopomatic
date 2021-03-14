@@ -31,7 +31,7 @@ def gettpl(tplfnam,verbose=True):
 def populate(template,artwork,verbose=True,skubase=10):
     result = template
     artistraw = artwork["Artist's Name"]
-    artistlist = artistraw.lower().split() #handle double blanks in input !
+    artistlist = artistraw.lower().split() 
     titleraw  = artwork["Title of work"]
     titlelist = titleraw.lower().split()
     handlelist = artistlist + titlelist
@@ -59,25 +59,25 @@ if __name__ == "__main__":
     if verbose:
         print(datafnam)
 
-    import pdb; pdb.set_trace()
     newprods = getprods(datafnam,verbose)
-    print(len(newprods))
+    #print(len(newprods))
     if verbose:
         for k,v in newprods[0].items():
             print(k,":: ",v)
         print("*************")
     
     template = gettpl(tplfnam,verbose)
-    print( len(template.keys()) )
+    #print( len(template.keys()) )
     if verbose:
         for k,v in template.items():
             print(k,":: ",v)
 
     result = []
-    for index in range(1):
-        result.append(populate(template,newprods[index],verbose))
-    print( len(result) )
-    
+    for newprod in newprods:
+        result.append(populate(template,newprod,verbose))
+    print("items successfully processed: %d"%len(result) )
+
+    # csv writer
 
 
 """ 
