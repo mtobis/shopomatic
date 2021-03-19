@@ -1,4 +1,4 @@
-import csv, sys, argparse
+import csv, sys, argparse, datetime
 
     
 def getprods(datafnam,verbose=True):
@@ -10,10 +10,12 @@ def getprods(datafnam,verbose=True):
         for work in newproducts[1:]:
             workdict = dict(zip(prodkeys,work))
             allprods.append(workdict)
+        """
         if verbose:
             for workdict in allprods:
                 for k in workdict.keys():
                     print (k,"-::-",workdict[k])
+        """
         return allprods
 
 def gettpl(tplfnam,verbose=True):
@@ -23,34 +25,71 @@ def gettpl(tplfnam,verbose=True):
         templatekeys = templates[0]
         templatedata = templates[1]
         template = dict(zip(templatekeys,templatedata))
+        """
         if verbose:
             for k,v in template.items():
                 print(k,"-:-",v)
-        return template
+        """
+        return template,templatekeys
 
-def populate(template,artwork,verbose=True,skubase=10):
-    result = template
-    artistraw = artwork["Artist's Name"]
+def populate(template,artwork,sku,verbose=True):
+    result = template.copy()
+    #import pdb;pdb.set_trace()
+    artistraw = artwork.get("Artist's Name") or artwork["Artist's Name "]
     artistlist = artistraw.lower().split() 
     titleraw  = artwork["Title of work"]
     titlelist = titleraw.lower().split()
     handlelist = artistlist + titlelist
+
+    dimensions = [artwork["Width of work in inches"],
+                      artwork["Height of work in inches"],
+                      artwork["Depth of work in inches "],
+                 ]
     result["Handle"] = "-".join(handlelist)
     result["Title"] = " ".join(artistlist) + " ~ " + " ".join(titlelist)
+    linedict = {"title": titleraw,
+                "media": artwork["Medium of work"],
+                "dimensions": '" x '.join(dimensions) + '"',
+                "colour": artwork.get("Extended description or other text to display to add interest (optional but recommended)") or
+                          artwork["Extended description or other text to display to add interest (optional but recommended) 10 to 50 words is ideal, 100 word maximum."]
+               }
+    result["Body (HTML)"] = template["Body (HTML)"].format(**linedict)
+    result["Variant Price"] = "%8.2f"%float(artwork["List price (Canadian dollars)"])
+    result["Variant SKU"] = sku
+
     if verbose:
-        for k,v in result.items():
-            print(k,":-:",v)
+        print(titleraw)
+
     return result
 
+def checksku(sku):
+    year = str(datetime.datetime.now().year)[-2:]
+    try:
+        ivalue = int(sku)
+    except ValueError:
+        raise argparse.ArgumentTypeError("\n\nY%s-%s is not a valid sku. Use a 1 to 4 digit number\n\n." %(year,sku))
+    if ivalue < 1 or ivalue > 9999:
+        raise argparse.ArgumentTypeError("\n\nY%s-%s is not a valid sku. Use a 1 to 4 digit number.\n\n" % (year,sku))
+    return ivalue
                 
 if __name__ == "__main__":
     tplfnam = "prodtpl.csv"
-    datafnam = "palmerup.csv"
+    #datafnam = "justin.csv" # don't hardwire! FIXME!!!!!!!!!!!!!
+    #produpnam = "products.csv"
     verbose = False
 
+    year = str(datetime.datetime.now().year)[-2:]
+    
     paramGet = argparse.ArgumentParser()
+    paramGet.add_argument("sku",type=checksku)
+    paramGet.add_argument("datafnam")
     paramGet.add_argument("-d","--data",help="csv file to process")
     paramGet.add_argument("-v","--verbose",help="increase verbosity",action="store_true")
+
+    datafnam = args.datafnam
+    assert (".csv" in datafnam)
+    produpnam = datfnam.replace(".csv","_up.csv")
+    
     args = paramGet.parse_args()
     if args.data:
         datafnam = args.data
@@ -58,78 +97,53 @@ if __name__ == "__main__":
         verbose = True
     if verbose:
         print(datafnam)
-
-    newprods = getprods(datafnam,verbose)
-    #print(len(newprods))
+    sku = int(args.sku)
+    """
     if verbose:
-        for k,v in newprods[0].items():
-            print(k,":: ",v)
-        print("*************")
+        skustr = "%04d"%args.sku
+        print(f"Y{year}-{skustr}")
+    """
     
-    template = gettpl(tplfnam,verbose)
-    #print( len(template.keys()) )
-    if verbose:
-        for k,v in template.items():
-            print(k,":: ",v)
+    newprods = getprods(datafnam,verbose)
+    
+    template,templatekeys = gettpl(tplfnam,verbose)
 
-    result = []
+    results = []
+
     for newprod in newprods:
-        result.append(populate(template,newprod,verbose))
-    print("items successfully processed: %d"%len(result) )
+        """
+        skustr = "%03d"%sku
+        skustr = f"Y{year}-{skustr}"
+        """
+        skustr = f"Y{year}-{sku:04d}"
 
+        if verbose:
+            print(skustr)
+        results.append(populate(template,newprod,skustr,verbose))
+        sku += 1
+        try:
+            assert (sku < 10000)
+        except AssertionError:
+            print ("\n\nMaximum SKU exceeded\n\n")
+            raise
+    """
+    if verbose:
+        for result in results:
+            for k,v in result.items():
+                print(k,": ",v)
+            print("**")
+    """
+        
     # csv writer
 
+    print(produpnam)
+    with open(produpnam, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=templatekeys)
 
-""" 
-    prefixfnam = "prefixlist.csv"
-    prefixlist = open(prefixfnam).readlines()
-    prefixlist = [item.strip().split(',') for item in prefixlist]
-    prefixes = {item[0]:item[1] for item in prefixlist}
+        writer.writeheader()
+        for result in results:
+            writer.writerow(result)
+        csvfile.close()
 
-###
-
-            body = workdict["Body (HTML)"].split("</p>")
-            print(body[0])
-            #if "elena" in body[0]:
-            #import pdb; pdb.set_trace()
-            if body:
-                if "~" in body[0]:
-                    artist = body[0].split('~')[0].strip()
-                    title = body[0].split('~')[1].strip()
-                else:
-                    print (body[0])
-                    title = body[0].strip()
-                    prefix= workdict['Variant SKU'].split("-")[0]
-                try:
-                    artist=prefixes[prefix].lower()
-                except:
-                    import pdb;pdb.set_trace()
-                
-                try:
-                    dims = body[2].strip()
-                except:
-                    import pdp;pdb.set_trace()
-                    dims = ""
-                info = body[1].strip()
-                info = info + '<br/>' + dims
-                info = info.replace("<br>","")
-                title = title.split("strong")[1][1:]
-                print("!",title)
-                title = title.replace("<b>","").replace("</b>","")
-                title = title.replace("<em>",'<i>').replace("</em>","</i>")[:-2]
-                title = "<i>"+title+"</i>"
-                outdict = {
-                "title": title.replace("<p>",""),
-                "artist": artist.replace("<p>",""),
-                "info": info.replace("<p>",""),
-                "price": "$"+workdict["Variant Price"].split(".")[0]
-                }
-                contents += onelabel(outdict)
-
-    html = template.replace("%CONTENT",contents)
+    print("products successfully processed: %d"%len(results) )
     
-    outfnam = "labels.html"
-    outf = open(outfnam,"w")
-    outf.write(html)
-    outf.close()
-"""
