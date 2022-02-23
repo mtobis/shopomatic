@@ -1,4 +1,5 @@
 import csv, sys, argparse, datetime
+#tirivial change to test github
 
     
 def getprods(datafnam,verbose=True):
