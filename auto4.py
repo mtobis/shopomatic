@@ -1,6 +1,28 @@
 import csv, sys, argparse, datetime
-#tirivial change to test github
+import pdb
+from pdb import set_trace as ST
+verbose = False
 
+
+def cleanartists(infnam="allartists.csv"):
+    bynick = {}
+    bymail = {}
+    with open("allartists.csv") as a1:
+        reader = csv.reader(a1)
+        artists = list(reader)
+    
+    artkeys = artists[0]
+    if verbose:
+        for artkey in artkeys:
+            print("_"+artkey+"_")
+    for artist in artists[1:]:
+        artistdict = dict(zip(artkeys,artist))
+        nickname = artistdict["Nickname"].strip().lower()
+        if nickname:
+            bynick[nickname] = artistdict
+        email = artistdict["Contact email"]
+        bymail[email] = artistdict
+    return(bynick,bymail)
     
 def getprods(datafnam,verbose=True):
     allprods = []
@@ -33,7 +55,57 @@ def gettpl(tplfnam,verbose=True):
         """
         return template,templatekeys
 
-def populate(template,artwork,sku,verbose=True):
+def populate(template,artwork,sku,bynick,bymail,verbose=True):
+    print(sku)
+    result = template.copy()
+    #import pdb;pdb.set_trace()
+    artisthandle = artwork["Please enter your gallery nickname"].lower()
+
+    if "@" in artisthandle:
+        artistraw = bymail[artisthandle]["What name do you sign your works with?"]
+    else:
+        artistraw = bynick[artisthandle]["What name do you sign your works with?"]
+    
+    #artistraw = artwork.get("Artist's Name") or artwork["Artist's Name "]
+
+
+    
+    artistlist = artistraw.lower().split() 
+    titleraw  = artwork["Title of Work"].replace('"','')
+    titlelist = titleraw.split()
+    handlelist = artistlist + titlelist
+
+    dimensions = [artwork['Width of "___" in inches'],
+                      artwork['Height of "___" in Inches']
+                 ]
+
+    if artwork["Hangs"] == "Wall hanging":
+        media = artwork['Medium of "___"'] + " on " + artwork['Substrate of "___"'].replace("stretched ","")
+    else:
+        media = artwork['What materials is "___" made of?']
+        
+    result["Handle"] = "-".join(handlelist)
+    result["Title"] = " ".join(artistlist) + " ~ " + " ".join(titlelist)
+    linedict = {"title": titleraw,
+                "media": media,
+                "dimensions": '" x '.join(dimensions) + '"',
+                "colour": artwork["Colour Text"]}
+    linedict["media"] = linedict["media"].lower()
+    """
+    if isframed:
+        linedict["dimensions"] += "; framed: " +  '" x '.join(framedims) + '"'
+    """
+    result["Body (HTML)"] = template["Body (HTML)"].format(**linedict)
+    result["Variant Price"] = "%8.2f"%float(artwork['Your recommended list price for "___"'])
+    result["Variant SKU"] = sku
+
+    if verbose:
+        print(titleraw)
+
+    return result
+
+"""    
+def populate_orig(template,artwork,sku,verbose=True):
     print(sku)
     result = template.copy()
     #import pdb;pdb.set_trace()
@@ -48,13 +120,13 @@ def populate(template,artwork,sku,verbose=True):
                       artwork["Depth of work in inches "],
                  ]
 
-    """
-    isframed = not artwork["Materials of the frame (if unframed leave blank)"].isspace()
-    framedims = [artwork["Width of framed piece in inches (if unframed leave blank)"],
-                      artwork["Width of framed piece in inches (if unframed leave blank)"],
-                      artwork["Width of framed piece in inches (if unframed leave blank)"],
-                 ]
-    """
+
+    ###isframed = not artwork["Materials of the frame (if unframed leave blank)"].isspace()
+    ###framedims = [artwork["Width of framed piece in inches (if unframed leave blank)"],
+    ###                  artwork["Width of framed piece in inches (if unframed leave blank)"],
+    ###                  artwork["Width of framed piece in inches (if unframed leave blank)"],
+    ###             ]
+    
     result["Handle"] = "-".join(handlelist)
     result["Title"] = " ".join(artistlist) + " ~ " + " ".join(titlelist)
     linedict = {"title": titleraw,
@@ -65,10 +137,10 @@ def populate(template,artwork,sku,verbose=True):
                           artwork.get("Extended description or other text to display to add interest (optional but recommended) 10 to 50 words is ideal, 100 word maximum.") or
                           artwork["Extended description"]}
     linedict["media"] = linedict["media"].lower()
-    """
-    if isframed:
-        linedict["dimensions"] += "; framed: " +  '" x '.join(framedims) + '"'
-    """
+    
+    ###if isframed:
+    ###    linedict["dimensions"] += "; framed: " +  '" x '.join(framedims) + '"'
+    
     result["Body (HTML)"] = template["Body (HTML)"].format(**linedict)
     result["Variant Price"] = "%8.2f"%float(artwork["List price (Canadian dollars)"])
     result["Variant SKU"] = sku
@@ -77,7 +149,8 @@ def populate(template,artwork,sku,verbose=True):
         print(titleraw)
 
     return result
-
+"""
+        
 def checksku(sku):
     year = str(datetime.datetime.now().year)[-2:]
     try:
@@ -94,6 +167,8 @@ if __name__ == "__main__":
     #datafnam = "justin.csv" # don't hardwire! FIXME!!!!!!!!!!!!!
     #produpnam = "products.csv"
     verbose = False
+
+    bynick,bymail = cleanartists() 
 
     year = str(datetime.datetime.now().year)[-2:]
     
@@ -133,7 +208,7 @@ if __name__ == "__main__":
 
     results = []
 
-    for newprod in newprods:
+    for newprod in newprods: 
         """
         skustr = "%03d"%sku
         skustr = f"Y{year}-{skustr}"
@@ -142,7 +217,7 @@ if __name__ == "__main__":
 
         if verbose:
             print(skustr)
-        results.append(populate(template,newprod,skustr,verbose))
+        results.append(populate(template,newprod,skustr,bynick,bymail,verbose))
         sku += 1
         try:
             assert (sku < 10000)
