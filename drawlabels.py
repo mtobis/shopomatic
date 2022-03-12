@@ -173,7 +173,7 @@ if __name__ == "__main__":
                 try:
                     dims = body[2].strip()
                 except:
-                    import pdp;pdb.set_trace()
+                    import pdb;pdb.set_trace()
                     dims = ""
                 info = body[1].strip()
                 info = info + '<br/>' + dims
