@@ -187,7 +187,7 @@ if __name__ == "__main__":
                 "title": title.replace("<p>",""),
                 "artist": artist.replace("<p>",""),
                 "info": info.replace("<p>",""),
-                "price": "$"+workdict["Variant Price"].split(".")[0]
+                "price": "$"+workdict["Variant Price"].strip().split(".")[0]
                 }
                 contents += onelabel(outdict)
                 if (count % 3):

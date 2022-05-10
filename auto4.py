@@ -3,6 +3,20 @@ import pdb
 from pdb import set_trace as ST
 verbose = False
 
+def titlecase(rawtitle):
+
+    """
+    usage: print( titlecase("  the test IS a  wee  test string ") )
+    """
+    
+    exceptions = ["and", "or", "the", "a", "of", "in"]
+
+    lcwords = rawtitle.lower().strip().split()
+    title = [lcwords[0].capitalize()] + \
+             [word if word in exceptions else word.capitalize() for word in lcwords[1:]]
+
+    #return " ".join(title)
+    return title
 
 def cleanartists(infnam="allartists.csv"):
     bynick = {}
@@ -72,7 +86,7 @@ def populate(template,artwork,sku,bynick,bymail,verbose=True):
     
     artistlist = artistraw.lower().split() 
     titleraw  = artwork["Title of Work"].replace('"','')
-    titlelist = titleraw.split()
+    titlelist = titlecase(titleraw)
     handlelist = artistlist + titlelist
 
     dimensions = [artwork['Width of "___" in inches'],
@@ -169,7 +183,7 @@ if __name__ == "__main__":
     verbose = False
 
     bynick,bymail = cleanartists() 
-
+    
     year = str(datetime.datetime.now().year)[-2:]
     
     paramGet = argparse.ArgumentParser()
