@@ -11,7 +11,9 @@ def compheads(files):
     assert len(files) > 1
     firstfile = files[0]
     firstheaders = firstfile[0].split(",")
-    # print(firstheaders)
+
+    #Gather headers = necessary?
+
     allheaders = firstheaders
     count = 1
     for nextfile in files[1:]:
@@ -23,6 +25,19 @@ def compheads(files):
             if not item in allheaders:
                 Print(count,"adding header item",item)
                 allheaders.append(item)
+
+    # Gather results
+            
+    results = []
+    
+    for nextfile in files:
+        assert len(nextfile) > 1
+        headers = nextfile[0].split(",")
+        for item in nextfile[1:]:
+            line = item.split(",")
+            results.append(dict(zip(headers,line)))
+
+        
     return allheaders
 
 if __name__ == "__main__":
@@ -30,4 +45,6 @@ if __name__ == "__main__":
     files = []
     for fnam in filenames:
         files.append(open(fnam).readlines())
-    compheads(files)
+    allheads = compheads(files)
+    combined = [",".join(allheads)]
+    Print(combined)
