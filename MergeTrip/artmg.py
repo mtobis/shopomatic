@@ -7,54 +7,62 @@ def Print(*args):
 def compheads(files):
     
     assert len(files) > 1
-    firstfile = files[0]
-    #firstheaders = firstfile[0].split(",")
-    firstheaders = firstfile[0]
-
-    #Gather headers = necessary?
-    """
-    allheaders = firstheaders
-    count = 1
-    for nextfile in files[1:]:
-        #headers = nextfile[0].split(",")
-        headers = nextfile[0]
-        for item in allheaders:
-            if item not in headers:
-                Print(count,"missing header item",item)
-        for item in headers:
-            if not item in allheaders:
-                Print(count,"adding header item",item)
-                allheaders.append(item)
-    """
-    
-    # Gather results
             
     results = []
-    headers = set()
+    allheaders = set()
     
     for nextfile in files:
         assert len(nextfile) > 1
         #headers = nextfile[0].split(",")
-        headers.update( nextfile[0])
+        headers = nextfile[0]
+        allheaders.update(headers)
 
         for item in nextfile[1:]:
             #line = item.split(",")
-            line = item
-            results.append(dict(zip(headers,line)))
+            #line = item
+            results.append(dict(zip(headers,item)))
 
     # return allheaders
-    return headers
+    return allheaders,results
+
+def dropartists(filenames):
+    files = []
+    for fnam in filenames:
+        reader = csv.reader(open(fnam))
+        files.append(list(reader))
+    allheadset,results = compheads(files)
+    allheads = list(allheadset)
+    Print(allheads)
+
+    with open('artists.csv', 'w') as outfile:
+        writer = csv.DictWriter(outfile,fieldnames=allheads)
+        writer.writeheader()
+        for result in results:
+            writer.writerow(result)
 
 if __name__ == "__main__":
     import csv
-    
+
+    dropartists(["artist2.csv","artist1.csv"])
+
+    """
     filenames = ["artist2.csv","artist1.csv"]
     files = []
     for fnam in filenames:
         reader = csv.reader(open(fnam))
         files.append(list(reader))
         #files.append(open(fnam).readlines())
-    allheads = list(compheads(files))
+    allheadset,results = compheads(files)
+    allheads = list(allheadset)
     Print(allheads)
+
+    with open('artists.csv', 'w') as outfile:
+        writer = csv.DictWriter(outfile,fieldnames=allheads)
+        writer.writeheader()
+        for result in results:
+            Print(result)
+            writer.writerow(result)
+    
     #combined = [",".join(allheads)]
     #Print(combined)
+    """
